@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Table Scheduler</title>
+<style>
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
+  :root {
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --text: #111322;
+    --muted: #6b7280;
+    --primary: #6366f1;
+    --primary-2: #8b5cf6;
+    --primary-deep: #4f46e5;
+    --primary-soft: #eef2ff;
+    --green: #10b981;
+    --green-deep: #047857;
+    --green-soft: #ecfdf5;
+    --red: #ef4444;
+    --red-soft: #fef2f2;
+    --amber: #f59e0b;
+    --amber-soft: #fffbeb;
+    --border: #e9ebf3;
+    --shadow-sm: 0 1px 2px rgba(16,24,40,.05);
+    --shadow-md: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --shadow-lg: 0 24px 60px rgba(16,24,40,.18);
+    --radius: 20px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+      "Apple SD Gothic Neo", Inter, "Noto Sans KR", sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    background:
+      radial-gradient(1100px 560px at 88% -12%, rgba(139,92,246,.13), transparent 62%),
+      radial-gradient(900px 520px at -8% 18%, rgba(99,102,241,.10), transparent 56%),
+      radial-gradient(760px 520px at 55% 112%, rgba(16,185,129,.08), transparent 62%),
+      var(--bg);
+    background-attachment: fixed;
+  }
+  ::selection { background: rgba(99,102,241,.2); }
+
+  /* ───── 헤더 ───── */
+  header {
+    background: rgba(255,255,255,.72); backdrop-filter: blur(16px) saturate(1.4);
+    border-bottom: 1px solid rgba(233,235,243,.9);
+    padding: 13px 22px; display: flex; justify-content: space-between; align-items: center;
+    position: sticky; top: 0; z-index: 10; gap: 12px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand .logo {
+    width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--primary-deep), var(--primary-2));
+    color: #fff; font-size: 19px;
+    box-shadow: 0 6px 16px rgba(99,102,241,.38), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .brand h1 {
+    font-size: 18px; font-weight: 800; letter-spacing: -.03em;
+    background: linear-gradient(135deg, #3730a3, #7c3aed);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .brand .date { font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+
+  /* 세그먼트 컨트롤 (탭 / 언어 공용) */
+  .seg {
+    display: inline-flex; background: rgba(17,19,34,.06); border-radius: 13px; padding: 3px; gap: 2px;
+  }
+  .seg button {
+    border: none; background: none; cursor: pointer; border-radius: 10px;
+    padding: 7px 16px; font-size: 14px; font-weight: 650; color: var(--muted);
+    transition: all .2s ease; font-family: inherit;
+  }
+  .seg button.active {
+    background: #fff; color: var(--text);
+    box-shadow: 0 1px 3px rgba(16,24,40,.12), 0 3px 8px rgba(16,24,40,.06);
+  }
+  .seg.lang button { padding: 6px 11px; font-size: 12.5px; }
+
+  .tabbar-wrap { display: flex; justify-content: center; padding: 18px 16px 0; }
+  .tabbar-wrap .seg {
+    background: rgba(255,255,255,.7); box-shadow: var(--shadow-md);
+    border: 1px solid rgba(233,235,243,.9); backdrop-filter: blur(8px);
+  }
+  .tabbar-wrap .seg button { padding: 10px 32px; font-size: 15px; }
+  .tabbar-wrap .seg button.active {
+    background: linear-gradient(135deg, var(--primary-deep), var(--primary-2)); color: #fff;
+    box-shadow: 0 4px 14px rgba(99,102,241,.4);
+  }
+
+  main { padding: 18px 22px 70px; max-width: 920px; margin: 0 auto; }
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn .3s cubic-bezier(.2,.8,.3,1); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: none;} }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+    box-shadow: var(--shadow-md);
+  }
+  .card h2 {
+    font-size: 12.5px; margin-bottom: 14px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em; font-weight: 750;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  button.btn {
+    padding: 10px 18px; border: none; border-radius: 11px;
+    font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    background: linear-gradient(135deg, var(--primary-deep), var(--primary-2)); color: #fff;
+    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+    box-shadow: 0 3px 10px rgba(99,102,241,.35), inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  button.btn:hover { filter: brightness(1.06); box-shadow: 0 5px 16px rgba(99,102,241,.45), inset 0 1px 0 rgba(255,255,255,.2); }
+  button.btn:active { transform: scale(.97); }
+  button.btn.secondary {
+    background: #fff; color: var(--text); box-shadow: var(--shadow-sm);
+    border: 1.5px solid var(--border);
+  }
+  button.btn.secondary:hover { filter: none; border-color: #d6d9e6; box-shadow: var(--shadow-md); }
+  button.btn.danger { background: var(--red-soft); color: var(--red); box-shadow: none; border: 1.5px solid #fecaca; }
+  button.btn.danger:hover { filter: none; background: #fee2e2; }
+  button.btn.amber { background: var(--amber-soft); color: #92400e; box-shadow: none; border: 1.5px solid #fde68a; }
+  button.btn.violet { background: #fdf4ff; color: #7e22ce; box-shadow: none; border: 1.5px solid #e9d5ff; }
+  button.btn.violet:hover { filter: none; background: #fae8ff; }
+  button.btn.small { padding: 7px 13px; font-size: 12.5px; border-radius: 9px; }
+  button.btn:disabled { opacity: .45; cursor: not-allowed; }
+  input, select {
+    padding: 10px 13px; border: 1.5px solid var(--border); border-radius: 11px;
+    font-size: 14px; background: #fff; font-family: inherit; color: var(--text);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99,102,241,.13);
+  }
+
+  /* 인원수 입력 */
+  .party-input-row { display: flex; gap: 10px; align-items: center; }
+  .party-input-row .step {
+    width: 52px; height: 56px; border-radius: 15px; border: 1.5px solid var(--border);
+    background: #fff; font-size: 23px; font-weight: 700; cursor: pointer; font-family: inherit;
+    color: var(--muted); transition: all .15s ease; flex-shrink: 0; box-shadow: var(--shadow-sm);
+  }
+  .party-input-row .step:hover { border-color: var(--primary); color: var(--primary); box-shadow: var(--shadow-md); }
+  .party-input-row .step:active { transform: scale(.94); }
+  #partySizeInput {
+    flex: 1; height: 56px; font-size: 24px; font-weight: 800; text-align: center;
+    border-radius: 15px; min-width: 0; letter-spacing: -.01em;
+  }
+  #partySizeInput::-webkit-outer-spin-button, #partySizeInput::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  #partySizeInput[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+  .recommend-banner {
+    background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+    border: 1.5px solid #ddd6fe;
+    border-radius: 14px; padding: 14px 16px; margin-top: 14px; font-size: 14.5px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+  }
+  .recommend-banner b { color: var(--primary-deep); }
+  .recommend-banner .hint { font-size: 12.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+  .warn-banner {
+    background: var(--amber-soft); border: 1.5px solid #fde68a;
+    border-radius: 14px; padding: 14px 16px; margin-top: 14px; font-size: 13.5px; color: #92400e;
+  }
+  .rec-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+  /* 서버 카드 그리드 */
+  .server-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+  .server-card {
+    border: 1px solid var(--border); border-radius: 18px; padding: 16px;
+    background: #fff; box-shadow: var(--shadow-md);
+    display: flex; flex-direction: column; gap: 12px;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .server-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(16,24,40,.06), 0 16px 36px rgba(16,24,40,.1); }
+  .server-card.next {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px var(--primary), 0 10px 30px rgba(99,102,241,.25);
+  }
+  .server-card.break { border-style: dashed; border-color: #fcd34d; background: #fffdf5; }
+  .server-card .top { display: flex; align-items: center; gap: 11px; }
+  .avatar {
+    width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center;
+    color: #fff; font-weight: 800; font-size: 16px; flex-shrink: 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 3px 8px rgba(16,24,40,.18);
+  }
+  .server-card .who { flex: 1; min-width: 0; }
+  .server-card .name { font-weight: 800; font-size: 15.5px; letter-spacing: -.01em; }
+  .server-card .sub { font-size: 11.5px; color: var(--muted); font-weight: 550; margin-top: 1px; }
+  .next-tag {
+    background: linear-gradient(135deg, var(--primary-deep), var(--primary-2)); color: #fff;
+    font-size: 10.5px; font-weight: 800; padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+    box-shadow: 0 3px 8px rgba(99,102,241,.35);
+  }
+  .break-tag {
+    background: var(--amber); color: #fff; font-size: 10.5px; font-weight: 800;
+    padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+    box-shadow: 0 3px 8px rgba(245,158,11,.3);
+  }
+
+  .stat-pills { display: flex; gap: 8px; }
+  .pill {
+    flex: 1; background: var(--bg); border-radius: 13px; padding: 9px 4px; text-align: center;
+    border: 1px solid rgba(233,235,243,.7);
+  }
+  .pill .v { font-size: 18px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+  .pill .l { font-size: 10px; color: var(--muted); font-weight: 650; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+  .last-row { font-size: 12px; color: var(--muted); font-weight: 550; display: flex; align-items: center; gap: 5px; }
+  .idle-warn { color: var(--red) !important; font-weight: 750; }
+
+  /* 현재 팀 칩 */
+  .party-chips { display: flex; gap: 7px; flex-wrap: wrap; min-height: 30px; }
+  .party-chip {
+    background: #fff; border: 1.5px solid #c7f0de; color: var(--green-deep);
+    border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 700;
+    cursor: pointer; transition: all .15s ease; box-shadow: var(--shadow-sm);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .party-chip::before {
+    content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 0 3px rgba(16,185,129,.15);
+  }
+  .party-chip:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(16,24,40,.12); border-color: #99e6c9; }
+  .party-chips .none { font-size: 12px; color: #b0b6c3; align-self: center; font-weight: 500; }
+
+  .server-card .actions-row { display: flex; gap: 8px; align-items: center; }
+  .server-card .seat-btn { flex: 1; }
+
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .list-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 2px; border-bottom: 1px solid var(--border); gap: 8px; font-size: 14px; font-weight: 550;
+  }
+  .list-item:last-child { border-bottom: none; }
+  .muted { color: var(--muted); font-size: 12.5px; }
+  .panel-divider {
+    font-size: 11.5px; color: var(--muted); font-weight: 750; text-transform: uppercase;
+    letter-spacing: .08em; margin: 20px 2px 10px; display: flex; align-items: center; gap: 10px;
+  }
+  .panel-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+
+  /* 우측 배정 기록 사이드바 */
+  aside.log {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 304px;
+    background: rgba(255,255,255,.88); backdrop-filter: blur(16px);
+    border-left: 1px solid var(--border);
+    padding: 18px; overflow-y: auto; z-index: 15;
+    transform: translateX(100%); transition: transform .28s cubic-bezier(.2,.8,.3,1);
+    box-shadow: -8px 0 30px rgba(16,24,40,.08);
+  }
+  aside.log.open { transform: none; }
+  aside.log::-webkit-scrollbar { width: 6px; }
+  aside.log::-webkit-scrollbar-thumb { background: #d8dce6; border-radius: 99px; }
+  aside.log::-webkit-scrollbar-track { background: transparent; }
+  .log-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .log-head h2 {
+    font-size: 12.5px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .08em; font-weight: 750;
+  }
+  .log-close {
+    border: none; background: rgba(17,19,34,.06); border-radius: 9px; width: 30px; height: 30px;
+    cursor: pointer; font-size: 14px; color: var(--muted); transition: background .15s;
+  }
+  .log-close:hover { background: rgba(17,19,34,.1); }
+  .log-entry {
+    background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 11px 13px;
+    margin-bottom: 9px; font-size: 13px; box-shadow: var(--shadow-sm);
+    transition: box-shadow .15s ease;
+  }
+  .log-entry:hover { box-shadow: var(--shadow-md); }
+  .log-entry.departed { opacity: .55; }
+  .log-entry .line1 { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .log-entry .line1 .who { font-weight: 800; letter-spacing: -.01em; }
+  .log-entry .time { color: var(--muted); font-size: 11.5px; font-weight: 600; }
+  .log-entry .status { font-size: 11.5px; color: var(--muted); margin-top: 3px; font-weight: 550; }
+  .log-entry .status .live { color: var(--green); font-weight: 750; }
+  .log-entry .log-actions { display: flex; gap: 6px; margin-top: 9px; }
+  .log-toggle {
+    position: fixed; bottom: 22px; right: 22px; z-index: 14;
+    width: 54px; height: 54px; border-radius: 50%; border: none; cursor: pointer;
+    background: linear-gradient(135deg, var(--primary-deep), var(--primary-2)); color: #fff;
+    font-size: 21px; box-shadow: 0 8px 22px rgba(99,102,241,.45);
+    transition: transform .15s ease;
+  }
+  .log-toggle:active { transform: scale(.92); }
+  @media (min-width: 1150px) {
+    body { padding-right: 304px; }
+    aside.log { transform: none; }
+    .log-toggle, .log-close { display: none; }
+  }
+
+  /* 모달 */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(17,19,34,.45);
+    z-index: 20; align-items: center; justify-content: center; padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 22px; padding: 24px; width: 100%; max-width: 380px;
+    box-shadow: var(--shadow-lg); animation: popIn .25s cubic-bezier(.2,.8,.3,1);
+  }
+  @keyframes popIn { from { opacity: 0; transform: scale(.95) translateY(8px);} to { opacity: 1; transform: none;} }
+  .modal h3 { margin-bottom: 10px; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
+  .modal .actions { display: flex; gap: 8px; margin-top: 20px; }
+  .modal .actions button { flex: 1; }
+
+  .empty-note { text-align: center; color: #b0b6c3; padding: 30px 10px; font-size: 13.5px; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">🍽️</div>
+    <div>
+      <h1 data-i18n="appTitle"></h1>
+      <div class="date" id="todayLabel"></div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="seg lang">
+      <button id="langKo" onclick="setLang('ko')">한국어</button>
+      <button id="langEn" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+</header>
+
+<div class="tabbar-wrap">
+  <div class="seg">
+    <button class="active" data-tab="floor" onclick="switchTab('floor')" data-i18n="tabFloor"></button>
+    <button data-tab="setup" onclick="switchTab('setup')" data-i18n="tabSettings"></button>
+  </div>
+</div>
+
+<main>
+  <!-- ───────── 플로어 ───────── -->
+  <div class="page active" id="page-floor">
+    <div class="card">
+      <h2>✨ <span data-i18n="newParty"></span></h2>
+      <div class="party-input-row">
+        <button class="step" onclick="bumpParty(-1)">−</button>
+        <input type="number" id="partySizeInput" min="1" max="99" inputmode="numeric"
+               data-i18n-ph="partyPh" oninput="partyTyped(this.value)">
+        <button class="step" onclick="bumpParty(1)">＋</button>
+      </div>
+      <div id="recommendArea"></div>
+    </div>
+    <div id="staffPanel"></div>
+  </div>
+
+  <!-- ───────── 설정 ───────── -->
+  <div class="page" id="page-setup">
+    <div class="card">
+      <h2>👥 <span data-i18n="roster"></span></h2>
+      <div class="row">
+        <input type="text" id="newServerName" style="flex:1" data-i18n-ph="serverPh">
+        <button class="btn" onclick="addServer()" data-i18n="add"></button>
+      </div>
+      <div id="rosterList"></div>
+    </div>
+    <div class="card">
+      <h2>🔄 <span data-i18n="dayMgmt"></span></h2>
+      <button class="btn danger" onclick="resetDay()" data-i18n="resetDay"></button>
+    </div>
+  </div>
+</main>
+
+<!-- 우측 배정 기록 사이드바 -->
+<aside class="log" id="logPanel">
+  <div class="log-head">
+    <h2>📋 <span data-i18n="logTitle"></span></h2>
+    <button class="log-close" onclick="toggleLog()">✕</button>
+  </div>
+  <div id="logList"></div>
+</aside>
+<button class="log-toggle" onclick="toggleLog()">📋</button>
+
+<!-- 모달 -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<script>
+// ───────────────────────── 다국어 ─────────────────────────
+const I18N = {
+  ko: {
+    appTitle: '테이블 스케줄러',
+    tabFloor: '플로어', tabSettings: '설정',
+    newParty: '새 손님 — 인원수 입력',
+    roster: '직원 명단', dayMgmt: '영업일 관리',
+    add: '추가', del: '삭제', close: '닫기', cancel: '취소', ok: '확인', seat: '배정',
+    resetDay: '새 영업일 시작 (출근·배정 기록 초기화)',
+    serverPh: '직원 이름', partyPh: '인원수 입력',
+    clockIn: '출근', clockOut: '퇴근', working: '근무 중', waiting: '출근 대기',
+    nextUp: '다음 배정', noneYet: '아직 없음', justNow: '방금',
+    breakStart: '☕ 브레이크', breakEnd: '▶ 복귀', onBreak: '브레이크 중',
+    confirmSeatBreak: name => `${name} 서버는 지금 브레이크 중입니다. 그래도 배정할까요?`,
+    recBanner: name => `👉 추천: <b>${name}</b>`,
+    recHint: '추천 서버의 [배정]을 누르거나, 다른 서버의 [배정]으로 직접 지정하세요. Enter = 추천 서버에게 바로 배정.',
+    noServers: '출근한 서버가 없습니다. 아래에서 출근 처리를 먼저 하세요.',
+    noAvailable: '⚠️ 배정 가능한 서버가 없습니다 (전원 브레이크 중). 배정 버튼으로 직접 지정은 가능합니다.',
+    guests: n => `${n}명`,
+    headLabel: '손님', tablesLabel: '팀', todayShort: '오늘',
+    orderSub: n => `출근 ${n}번째`,
+    lastSeated: '마지막 배정', ago: t => `${t} 전`,
+    min: n => `${n}분`, hourMin: (h, m) => `${h}시간 ${m}분`,
+    elapsed: t => `${t} 경과`,
+    departed: '퇴장 처리',
+    noActiveParties: '담당 테이블 없음',
+    logTitle: '오늘 배정 기록',
+    emptyLog: '아직 배정 기록이 없습니다.',
+    cancelSeat: '배정 취소',
+    undoDepart: '퇴장 취소',
+    seatedLive: '식사 중',
+    departedAt: time => `퇴장 ${time}`,
+    confirmCancelSeat: '이 배정을 취소(삭제)합니다. 통계에서도 제거됩니다. 계속할까요?',
+    exceptionSeat: '⭐ 예외배정',
+    exceptionTitle: '⭐ 예외배정 — 서버 직접 지정',
+    chooseServer: '담당 서버 선택',
+    noStaff: '설정 탭에서 직원을 먼저 추가하세요.',
+    noRoster: '등록된 직원이 없습니다.',
+    notClockedIn: '출근한 서버가 없습니다.',
+    alertDelWorking: '오늘 출근 중인 직원은 삭제할 수 없습니다. 먼저 퇴근 처리하세요.',
+    confirmClockOut: '아직 담당 중인 테이블이 있습니다. 그래도 퇴근 처리할까요?\n(앉아있는 손님 기록은 유지됩니다)',
+    confirmReset: '출근 기록과 오늘의 배정 기록을 모두 초기화합니다. 계속할까요?\n(직원 명단은 유지됩니다)',
+    dateLocale: 'ko-KR',
+  },
+  en: {
+    appTitle: 'Table Scheduler',
+    tabFloor: 'Floor', tabSettings: 'Settings',
+    newParty: 'New Party — Enter Size',
+    roster: 'Staff Roster', dayMgmt: 'Business Day',
+    add: 'Add', del: 'Delete', close: 'Close', cancel: 'Cancel', ok: 'OK', seat: 'Seat',
+    resetDay: 'Start New Day (clear clock-ins & seatings)',
+    serverPh: 'Server name', partyPh: 'Party size',
+    clockIn: 'Clock In', clockOut: 'Clock Out', working: 'Working', waiting: 'Not Clocked In',
+    nextUp: 'Next Up', noneYet: 'None yet', justNow: 'Just now',
+    breakStart: '☕ Break', breakEnd: '▶ Resume', onBreak: 'On break',
+    confirmSeatBreak: name => `${name} is on break right now. Seat this party with them anyway?`,
+    recBanner: name => `👉 Suggested: <b>${name}</b>`,
+    recHint: 'Tap [Seat] on the suggested server, or any other server to assign manually. Enter = seat with suggested server.',
+    noServers: 'No servers clocked in. Clock in staff below first.',
+    noAvailable: '⚠️ No servers available (everyone is on break). You can still assign manually with a Seat button.',
+    guests: n => `${n} guests`,
+    headLabel: 'Guests', tablesLabel: 'Parties', todayShort: 'Today',
+    orderSub: n => `Clock-in #${n}`,
+    lastSeated: 'Last seated', ago: t => `${t} ago`,
+    min: n => `${n}m`, hourMin: (h, m) => `${h}h ${m}m`,
+    elapsed: t => `${t} elapsed`,
+    departed: 'Mark Departed',
+    noActiveParties: 'No active parties',
+    logTitle: "Today's Log",
+    emptyLog: 'No seatings yet.',
+    cancelSeat: 'Cancel Seat',
+    undoDepart: 'Undo Depart',
+    seatedLive: 'Seated',
+    departedAt: time => `Departed ${time}`,
+    confirmCancelSeat: 'This deletes the seating record and removes it from all stats. Continue?',
+    exceptionSeat: '⭐ Override Seat',
+    exceptionTitle: '⭐ Override — Pick Server',
+    chooseServer: 'Choose server',
+    noStaff: 'Add staff in the Settings tab first.',
+    noRoster: 'No staff registered.',
+    notClockedIn: 'No servers clocked in.',
+    alertDelWorking: 'This server is clocked in today. Clock them out first.',
+    confirmClockOut: 'This server still has active parties. Clock out anyway?\n(Seated guest records are kept)',
+    confirmReset: "This clears today's clock-ins and seating records. Continue?\n(Roster is kept)",
+    dateLocale: 'en-US',
+  },
+};
+
+// ───────────────────────── 상태 ─────────────────────────
+const STORAGE_KEY = 'tableSchedulerState';
+
+let state = loadState();
+
+function defaultState() {
+  return {
+    lang: 'ko',
+    roster: [],     // {id, name}
+    clockIns: [],   // {serverId, order, clockInAt, onBreak}
+    seatings: [],   // {id, serverId, partySize, seatedAt, leftAt|null, exception}
+  };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return { ...defaultState(), ...JSON.parse(raw) };
+  } catch (e) { /* 손상된 데이터면 새로 시작 */ }
+  return defaultState();
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  render();
+}
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+const t = key => I18N[state.lang][key];
+
+// 선택된 손님 인원수 (배정 대기 중)
+let selectedPartySize = null;
+
+function setLang(lang) {
+  state.lang = lang;
+  save();
+}
+
+// ───────────────────────── 배정 알고리즘 ─────────────────────────
+// 우선순위:
+// 1. 오늘 첫 손님을 아직 못 받은 서버 → 출근 순서
+// 2. 현재 앉아있는 손님 수(헤드카운트)가 적은 서버
+// 3. 동률이면 마지막 배정이 가장 오래된 서버
+// 4. 그래도 동률이면 출근 순서
+// 브레이크 중인 서버는 추천에서 제외 (수동 배정은 확인 후 가능)
+
+function activeSeatings() {
+  return state.seatings.filter(s => !s.leftAt);
+}
+
+function serverInfo(clockIn) {
+  const server = state.roster.find(r => r.id === clockIn.serverId);
+  const mySeatings = state.seatings.filter(s => s.serverId === clockIn.serverId);
+  const active = mySeatings.filter(s => !s.leftAt);
+  return {
+    clockIn,
+    name: server ? server.name : '?',
+    onBreak: !!clockIn.onBreak,
+    activeParties: active,
+    headcount: active.reduce((sum, s) => sum + s.partySize, 0),
+    totalTables: mySeatings.length,
+    lastSeatedAt: mySeatings.length ? Math.max(...mySeatings.map(s => s.seatedAt)) : null,
+  };
+}
+
+function rankedServers() {
+  return state.clockIns.map(serverInfo).sort((a, b) => {
+    // 규칙 1: 첫 손님을 못 받은 서버 우선, 출근 순서대로
+    const aFirst = a.totalTables === 0, bFirst = b.totalTables === 0;
+    if (aFirst !== bFirst) return aFirst ? -1 : 1;
+    if (aFirst && bFirst) return a.clockIn.order - b.clockIn.order;
+    // 규칙 2: 헤드카운트 적은 순
+    if (a.headcount !== b.headcount) return a.headcount - b.headcount;
+    // 규칙 3: 마지막 배정이 오래된 순
+    if (a.lastSeatedAt !== b.lastSeatedAt) return a.lastSeatedAt - b.lastSeatedAt;
+    // 동률: 출근 순서
+    return a.clockIn.order - b.clockIn.order;
+  });
+}
+
+function recommendedServer() {
+  return rankedServers().find(info => !info.onBreak) ?? null;
+}
+
+// ───────────────────────── 배정 / 퇴장 / 취소 ─────────────────────────
+function seatWith(serverId, isException = false) {
+  if (!selectedPartySize) return;
+  const clockInRec = state.clockIns.find(c => c.serverId === serverId);
+  if (!clockInRec) return;
+  if (clockInRec.onBreak) {
+    const name = state.roster.find(r => r.id === serverId)?.name ?? '?';
+    if (!confirm(t('confirmSeatBreak')(name))) return;
+  }
+  state.seatings.push({
+    id: uid(), serverId, partySize: selectedPartySize,
+    seatedAt: Date.now(), leftAt: null, exception: isException,
+  });
+  selectedPartySize = null;
+  closeModal();
+  save();
+}
+
+// 예외배정 모달: 서버 드롭다운에서 직접 선택
+function openExceptionModal() {
+  if (!selectedPartySize || !state.clockIns.length) return;
+  const opts = [...state.clockIns].sort((a, b) => a.order - b.order).map(c => {
+    const name = state.roster.find(r => r.id === c.serverId)?.name ?? '?';
+    return `<option value="${c.serverId}">${name}${c.onBreak ? ' ☕' : ''}</option>`;
+  }).join('');
+  openModal(`
+    <h3>${t('exceptionTitle')}</h3>
+    <p class="muted">👥 ${t('guests')(selectedPartySize)}</p>
+    <label class="muted" style="display:block;margin:12px 0 6px">${t('chooseServer')}</label>
+    <select id="exceptionServer" style="width:100%">${opts}</select>
+    <div class="actions">
+      <button class="btn secondary" onclick="closeModal()">${t('cancel')}</button>
+      <button class="btn" onclick="seatWith(document.getElementById('exceptionServer').value, true)">${t('seat')}</button>
+    </div>`);
+}
+
+function partyLeft(seatingId) {
+  const seating = state.seatings.find(s => s.id === seatingId);
+  if (seating) seating.leftAt = Date.now();
+  closeModal();
+  save();
+}
+
+// 배정 취소: 기록 자체를 삭제 (실수 되돌리기 — 통계에서도 제거)
+function cancelSeating(seatingId) {
+  if (!confirm(t('confirmCancelSeat'))) return;
+  state.seatings = state.seatings.filter(s => s.id !== seatingId);
+  save();
+}
+
+// 퇴장 취소: 실수로 퇴장 처리한 팀 복구
+function undoDeparture(seatingId) {
+  const seating = state.seatings.find(s => s.id === seatingId);
+  if (seating) seating.leftAt = null;
+  save();
+}
+
+function partyChipClicked(seatingId) {
+  const seating = state.seatings.find(s => s.id === seatingId);
+  if (!seating) return;
+  const name = state.roster.find(r => r.id === seating.serverId)?.name ?? '?';
+  openModal(`
+    <h3>${name} — ${t('guests')(seating.partySize)}</h3>
+    <p class="muted">${t('elapsed')(fmtElapsed(seating.seatedAt))}</p>
+    <div class="actions">
+      <button class="btn secondary" onclick="closeModal()">${t('close')}</button>
+      <button class="btn danger" onclick="partyLeft('${seating.id}')">${t('departed')}</button>
+    </div>`);
+}
+
+// ───────────────────────── UI: 탭 ─────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tabbar-wrap .seg button').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelector(`.tabbar-wrap .seg button[data-tab="${name}"]`).classList.add('active');
+}
+
+// ───────────────────────── UI: 인원수 입력 ─────────────────────────
+function partyTyped(value) {
+  const n = parseInt(value, 10);
+  selectedPartySize = (n >= 1) ? Math.min(n, 99) : null;
+  render();
+}
+
+function bumpParty(delta) {
+  const next = (selectedPartySize ?? 0) + delta;
+  selectedPartySize = next >= 1 ? Math.min(next, 99) : null;
+  render();
+}
+
+function syncPartyInput() {
+  const inp = document.getElementById('partySizeInput');
+  // 타이핑 중에는 값을 덮어쓰지 않는다 (커서/포커스 보존)
+  if (document.activeElement !== inp) inp.value = selectedPartySize ?? '';
+}
+
+function renderRecommend() {
+  const el = document.getElementById('recommendArea');
+  if (!selectedPartySize) { el.innerHTML = ''; return; }
+  if (!state.clockIns.length) {
+    el.innerHTML = `<div class="warn-banner">${t('noServers')}</div>`;
+    return;
+  }
+  const rec = recommendedServer();
+  const banner = rec
+    ? `<div class="recommend-banner">
+        ${t('recBanner')(rec.name)} · 👥 ${t('guests')(selectedPartySize)}
+        <div class="hint">${t('recHint')}</div>
+      </div>`
+    : `<div class="warn-banner">${t('noAvailable')}</div>`;
+  el.innerHTML = banner + `<div class="rec-actions">
+    <button class="btn small violet" onclick="openExceptionModal()">${t('exceptionSeat')}</button>
+  </div>`;
+}
+
+function fmtElapsed(ts) {
+  const min = Math.floor((Date.now() - ts) / 60000);
+  if (min < 60) return t('min')(min);
+  return t('hourMin')(Math.floor(min / 60), min % 60);
+}
+
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString(t('dateLocale'), { hour: '2-digit', minute: '2-digit' });
+}
+
+// 서버 이름 → 고유 색상 (아바타)
+function avatarStyle(name) {
+  let hash = 0;
+  for (const ch of name) hash = (hash * 31 + ch.codePointAt(0)) >>> 0;
+  const hue = hash % 360;
+  return `background: linear-gradient(135deg, hsl(${hue} 62% 52%), hsl(${(hue + 32) % 360} 62% 42%))`;
+}
+
+// ───────────────────────── UI: 서버 카드 ─────────────────────────
+function renderStaffPanel() {
+  const el = document.getElementById('staffPanel');
+  if (!state.roster.length) {
+    el.innerHTML = `<div class="card"><div class="empty-note">${t('noStaff')}</div></div>`;
+    return;
+  }
+
+  const ranked = rankedServers();
+  const rec = recommendedServer();
+  const nextId = rec ? rec.clockIn.serverId : null;
+
+  // 근무 중 — 출근 순서대로 카드 표시
+  const workingCards = [...ranked].sort((a, b) => a.clockIn.order - b.clockIn.order).map(info => {
+    const isNext = info.clockIn.serverId === nextId;
+    const idleMin = info.lastSeatedAt ? Math.floor((Date.now() - info.lastSeatedAt) / 60000) : null;
+    const idleText = info.lastSeatedAt === null ? t('noneYet')
+      : idleMin < 1 ? t('justNow') : t('ago')(fmtElapsed(info.lastSeatedAt));
+    const idleCls = (idleMin !== null && idleMin >= 30) || info.lastSeatedAt === null ? 'idle-warn' : '';
+    const cardCls = info.onBreak ? ' break' : (isNext ? ' next' : '');
+    const statusTag = info.onBreak
+      ? `<span class="break-tag">☕ ${t('onBreak')}</span>`
+      : (isNext ? `<span class="next-tag">⚡ ${t('nextUp')}</span>` : '');
+    const chips = info.activeParties.length
+      ? info.activeParties.map(s =>
+          `<span class="party-chip" onclick="partyChipClicked('${s.id}')">${s.exception ? '⭐ ' : ''}${t('guests')(s.partySize)} · ${fmtElapsed(s.seatedAt)}</span>`
+        ).join('')
+      : `<span class="none">${t('noActiveParties')}</span>`;
+    const seatBtn = selectedPartySize
+      ? `<button class="btn seat-btn${isNext ? '' : ' secondary'}" onclick="seatWith('${info.clockIn.serverId}')">
+           ${isNext ? '⚡ ' : ''}${t('seat')} · ${t('guests')(selectedPartySize)}
+         </button>`
+      : '';
+    return `<div class="server-card${cardCls}">
+      <div class="top">
+        <div class="avatar" style="${avatarStyle(info.name)}">${info.name.slice(0, 1)}</div>
+        <div class="who">
+          <div class="name">${info.name}</div>
+          <div class="sub">${t('orderSub')(info.clockIn.order)}</div>
+        </div>
+        ${statusTag}
+      </div>
+      <div class="stat-pills">
+        <div class="pill"><div class="v">${info.headcount}</div><div class="l">${t('headLabel')}</div></div>
+        <div class="pill"><div class="v">${info.activeParties.length}</div><div class="l">${t('tablesLabel')}</div></div>
+        <div class="pill"><div class="v">${info.totalTables}</div><div class="l">${t('todayShort')}</div></div>
+      </div>
+      <div class="last-row"><span>⏱</span><span class="${idleCls}">${t('lastSeated')}: ${idleText}</span></div>
+      <div class="party-chips">${chips}</div>
+      <div class="actions-row">
+        ${seatBtn}
+        <button class="btn small ${info.onBreak ? 'amber' : 'secondary'}" onclick="toggleBreak('${info.clockIn.serverId}')">
+          ${info.onBreak ? t('breakEnd') : t('breakStart')}
+        </button>
+        <button class="btn small secondary" onclick="clockOut('${info.clockIn.serverId}')">${t('clockOut')}</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // 출근 대기
+  const clockedInIds = new Set(state.clockIns.map(c => c.serverId));
+  const waitingRows = state.roster.filter(r => !clockedInIds.has(r.id)).map(r => `
+    <div class="list-item">
+      <span>${r.name}</span>
+      <button class="btn small" onclick="clockIn('${r.id}')">${t('clockIn')}</button>
+    </div>`).join('');
+
+  el.innerHTML =
+    `<div class="panel-divider">${t('working')}</div>` +
+    (workingCards
+      ? `<div class="server-grid">${workingCards}</div>`
+      : `<div class="card"><div class="empty-note">${t('notClockedIn')}</div></div>`) +
+    (waitingRows
+      ? `<div class="panel-divider">${t('waiting')}</div><div class="card">${waitingRows}</div>`
+      : '');
+}
+
+function clockIn(serverId) {
+  const order = state.clockIns.length ? Math.max(...state.clockIns.map(c => c.order)) + 1 : 1;
+  state.clockIns.push({ serverId, order, clockInAt: Date.now(), onBreak: false });
+  save();
+}
+
+function clockOut(serverId) {
+  const hasActive = activeSeatings().some(s => s.serverId === serverId);
+  if (hasActive && !confirm(t('confirmClockOut'))) return;
+  state.clockIns = state.clockIns.filter(c => c.serverId !== serverId);
+  save();
+}
+
+function toggleBreak(serverId) {
+  const clockInRec = state.clockIns.find(c => c.serverId === serverId);
+  if (clockInRec) clockInRec.onBreak = !clockInRec.onBreak;
+  save();
+}
+
+// ───────────────────────── UI: 설정 ─────────────────────────
+function addServer() {
+  const input = document.getElementById('newServerName');
+  const name = input.value.trim();
+  if (!name) return;
+  state.roster.push({ id: uid(), name });
+  input.value = '';
+  save();
+}
+
+function removeServer(id) {
+  if (state.clockIns.some(c => c.serverId === id)) {
+    alert(t('alertDelWorking'));
+    return;
+  }
+  state.roster = state.roster.filter(r => r.id !== id);
+  save();
+}
+
+function renderSetupTab() {
+  document.getElementById('rosterList').innerHTML = state.roster.map(r => `
+    <div class="list-item">
+      <span style="display:flex;align-items:center;gap:9px">
+        <span class="avatar" style="width:30px;height:30px;border-radius:10px;font-size:12.5px;${avatarStyle(r.name)}">${r.name.slice(0, 1)}</span>
+        ${r.name}
+      </span>
+      <button class="btn small danger" onclick="removeServer('${r.id}')">${t('del')}</button>
+    </div>`).join('') || `<div class="empty-note">${t('noRoster')}</div>`;
+}
+
+function resetDay() {
+  if (!confirm(t('confirmReset'))) return;
+  state.clockIns = [];
+  state.seatings = [];
+  selectedPartySize = null;
+  save();
+}
+
+// ───────────────────────── UI: 배정 기록 사이드바 ─────────────────────────
+function toggleLog() {
+  document.getElementById('logPanel').classList.toggle('open');
+}
+
+function renderLog() {
+  const el = document.getElementById('logList');
+  if (!state.seatings.length) {
+    el.innerHTML = `<div class="empty-note">${t('emptyLog')}</div>`;
+    return;
+  }
+  // 최신 배정이 위로
+  el.innerHTML = [...state.seatings].sort((a, b) => b.seatedAt - a.seatedAt).map(s => {
+    const name = state.roster.find(r => r.id === s.serverId)?.name ?? '?';
+    const status = s.leftAt
+      ? t('departedAt')(fmtTime(s.leftAt))
+      : `<span class="live">● ${t('seatedLive')}</span> · ${fmtElapsed(s.seatedAt)}`;
+    const undoBtn = s.leftAt
+      ? `<button class="btn small secondary" onclick="undoDeparture('${s.id}')">${t('undoDepart')}</button>`
+      : '';
+    return `<div class="log-entry${s.leftAt ? ' departed' : ''}">
+      <div class="line1">
+        <span class="who">${s.exception ? '⭐ ' : ''}${name} · 👥 ${t('guests')(s.partySize)}</span>
+        <span class="time">${fmtTime(s.seatedAt)}</span>
+      </div>
+      <div class="status">${status}</div>
+      <div class="log-actions">
+        ${undoBtn}
+        <button class="btn small danger" onclick="cancelSeating('${s.id}')">${t('cancelSeat')}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ───────────────────────── 모달 ─────────────────────────
+function openModal(html) {
+  document.getElementById('modalBox').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+// ───────────────────────── 렌더 ─────────────────────────
+function renderStatic() {
+  // data-i18n 속성 기반 고정 텍스트 치환
+  document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => el.placeholder = t(el.dataset.i18nPh));
+  document.getElementById('langKo').classList.toggle('active', state.lang === 'ko');
+  document.getElementById('langEn').classList.toggle('active', state.lang === 'en');
+  document.getElementById('todayLabel').textContent =
+    new Date().toLocaleDateString(t('dateLocale'), { month: 'long', day: 'numeric', weekday: 'short' });
+  document.documentElement.lang = state.lang;
+}
+
+function render() {
+  renderStatic();
+  syncPartyInput();
+  renderRecommend();
+  renderStaffPanel();
+  renderSetupTab();
+  renderLog();
+}
+
+// Enter 키 동작: 직원 추가 / 추천 서버에게 바로 배정
+document.getElementById('newServerName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addServer(); }
+});
+document.getElementById('partySizeInput').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const rec = recommendedServer();
+  if (selectedPartySize && rec) seatWith(rec.clockIn.serverId);
+});
+
+// 경과 시간 표시를 1분마다 갱신
+setInterval(render, 60000);
+
+render();
+</script>
+</body>
+</html>
